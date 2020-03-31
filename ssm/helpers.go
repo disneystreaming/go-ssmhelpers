@@ -95,6 +95,7 @@ func RunInvocations(sp *session.Pool, sess *ssm.SSM, instances []*ssm.InstanceIn
 		}
 	}
 
+	wg.Wait()
 	// Fetch the results of our invocation for all provided instances
 	invocationtatus, err := invocation.GetCommandInvocationResult(sess, commandOutput.Output...)
 	if err != nil {
