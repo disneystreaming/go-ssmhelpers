@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/disneystreaming/go-ssmhelpers/aws/config"
 )
 
 // NewPoolSafe is used to create a pool of AWS sessions with different profile/region permutations
@@ -74,17 +74,18 @@ func newSession(profile string, region string) (newSession *session.Session) {
 		newSession = session.Must(
 			session.NewSessionWithOptions(
 				session.Options{
-					SharedConfigState: session.SharedConfigEnable,
+					Config:            *config.NewDefaultConfigWithRegion(region),
 					Profile:           profile,
-					Config: aws.Config{
-						Region: aws.String(region),
-					}}))
+					SharedConfigState: session.SharedConfigEnable,
+				}))
 	} else {
 		newSession = session.Must(
 			session.NewSessionWithOptions(
 				session.Options{
+					Config:            *config.NewDefaultConfig(),
+					Profile:           profile,
 					SharedConfigState: session.SharedConfigEnable,
-					Profile:           profile}))
+				}))
 	}
 
 	return newSession
