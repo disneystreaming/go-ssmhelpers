@@ -52,55 +52,56 @@ func GetCommandInvocationResult(context ssmiface.SSMAPI, jobs ...*ssm.SendComman
 
 	// Concurrently iterate through all items in []instanceIDs and get the invocation status
 	for _, v := range jobs {
-		wg.Add(len(v.Command.InstanceIds))
-		for _, i := range v.Command.InstanceIds {
+		if v.Command != nil {
+			for _, i := range v.Command.InstanceIds {
+				wg.Add(1)
+				go func(v *ssm.SendCommandOutput, i *string, context ssmiface.SSMAPI) {
+					defer wg.Done()
+					/*
+						GetCommandInvocation() requires a GetCommandInvocationInput object, which
+						has required parameters CommandId and InstanceId. It is important to note
+						that unlike the execution of the command, you can only retrieve the invocation
+						results for one instance+command at a time.
+					*/
+					gciInput := &ssm.GetCommandInvocationInput{
+						CommandId:  v.Command.CommandId,
+						InstanceId: i,
+					}
 
-			go func(v *ssm.SendCommandOutput, i *string, context ssmiface.SSMAPI) {
-				defer wg.Done()
-				/*
-					GetCommandInvocation() requires a GetCommandInvocationInput object, which
-					has required parameters CommandId and InstanceId. It is important to note
-					that unlike the execution of the command, you can only retrieve the invocation
-					results for one instance+command at a time.
-				*/
-				gciInput := &ssm.GetCommandInvocationInput{
-					CommandId:  v.Command.CommandId,
-					InstanceId: i,
-				}
+					// Retrieve the status of the command invocation
+					status, err := context.GetCommandInvocation(gciInput)
 
-				// Retrieve the status of the command invocation
-				status, err := context.GetCommandInvocation(gciInput)
+					// If we get "InvocationDoesNotExist", it just means we tried to check the results too quickly
+					for awsErr, ok := err.(awserr.Error); ok && err != nil && awsErr.Code() == "InvocationDoesNotExist"; {
+						time.Sleep(1000 * time.Millisecond)
+						status, err = context.GetCommandInvocation(gciInput)
+					}
 
-				// If we get "InvocationDoesNotExist", it just means we tried to check the results too quickly
-				for awsErr, ok := err.(awserr.Error); ok && err != nil && awsErr.Code() == "InvocationDoesNotExist"; {
-					time.Sleep(1000 * time.Millisecond)
-					status, err = context.GetCommandInvocation(gciInput)
-				}
+					// If we somehow throw a real error here, something has gone screwy with our invocation or the target instance
+					// See the docs on ssm.GetCommandInvocation() for error details
+					if err != nil {
+						errLog.Errorln(err)
+						return
+					}
 
-				// If we somehow throw a real error here, something has gone screwy with our invocation or the target instance
-				// See the docs on ssm.GetCommandInvocation() for error details
-				if err != nil {
-					errLog.Errorln(err)
-					return
-				}
+					// If the invocation is in a pending state, we sleep for a couple seconds before retrying the query
+					// NOTE: This may need to change based on API limits, but as there is no documentation, we'll have to wait and see.
+					for *status.StatusDetails == "InProgress" || *status.StatusDetails == "Pending" {
+						status, err = context.GetCommandInvocation(gciInput)
+						time.Sleep(2000 * time.Millisecond)
+					}
 
-				// If the invocation is in a pending state, we sleep for a couple seconds before retrying the query
-				// NOTE: This may need to change based on API limits, but as there is no documentation, we'll have to wait and see.
-				for *status.StatusDetails == "InProgress" || *status.StatusDetails == "Pending" {
-					status, err = context.GetCommandInvocation(gciInput)
-					time.Sleep(2000 * time.Millisecond)
-				}
+					if err != nil {
+						errLog.Errorln(err)
+						return
+					}
 
-				if err != nil {
-					errLog.Errorln(err)
-					return
-				}
-
-				// Append the result to our slice of results
-				results.Lock()
-				results.results = append(results.results, status)
-				results.Unlock()
-			}(v, i, context)
+					// Append the result to our slice of results
+					results.Lock()
+					results.results = append(results.results, status)
+					results.Unlock()
+				}(v, i, context)
+			}
 		}
 	}
 

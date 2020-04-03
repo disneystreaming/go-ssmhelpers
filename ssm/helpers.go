@@ -1,8 +1,6 @@
 package ssm
 
 import (
-	"sync"
-
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/hashicorp/go-multierror"
@@ -59,12 +57,9 @@ func addInstanceInfo(instanceID *string, tags []ec2helpers.InstanceTags, instanc
 func RunInvocations(sp *session.Pool, sess *ssm.SSM, instances []*ssm.InstanceInformation, params *invocation.RunShellScriptParameters, dryRun bool, resultsPool *invocation.ResultSafe) (err error) {
 	var commandOutput invocation.CommandOutputSafe
 	var invError error
-	var wg sync.WaitGroup
 
 	scoChan := make(chan *ssm.SendCommandOutput)
 	errChan := make(chan error)
-
-	wg.Add(len(instances))
 
 	/*
 		In a standard deployment, SSM allows us run commands on a maximum of
@@ -81,8 +76,6 @@ func RunInvocations(sp *session.Pool, sess *ssm.SSM, instances []*ssm.InstanceIn
 	*/
 
 	for _, instance := range instances {
-		defer wg.Done()
-
 		go invocation.RunSSMCommand(sess, params, dryRun, scoChan, errChan, *instance.InstanceId)
 		output, err := <-scoChan, <-errChan
 
@@ -95,9 +88,8 @@ func RunInvocations(sp *session.Pool, sess *ssm.SSM, instances []*ssm.InstanceIn
 		}
 	}
 
-	wg.Wait()
 	// Fetch the results of our invocation for all provided instances
-	invocationtatus, err := invocation.GetCommandInvocationResult(sess, commandOutput.Output...)
+	invocationStatus, err := invocation.GetCommandInvocationResult(sess, commandOutput.Output...)
 	if err != nil {
 		// If we somehow throw an error here, something has gone screwy with our invocation or the target instance
 		// See the docs on ssm.GetCommandInvocation() for error details
@@ -105,7 +97,7 @@ func RunInvocations(sp *session.Pool, sess *ssm.SSM, instances []*ssm.InstanceIn
 	}
 
 	// Iterate through all retrieved invocation results to add some extra context
-	addInvocationResults(invocationtatus, resultsPool, sp)
+	addInvocationResults(invocationStatus, resultsPool, sp)
 	return invError
 }
 

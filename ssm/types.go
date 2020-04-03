@@ -25,6 +25,10 @@ func (l *ListSlice) Set(value string) error {
 	return nil
 }
 
+func (l *ListSlice) Type() string {
+	return "stringSlice"
+}
+
 func (s *SemiSlice) String() string {
 	return fmt.Sprintf("%s", *s)
 }
@@ -38,6 +42,10 @@ func (s *SemiSlice) Set(value string) error {
 	return nil
 }
 
+func (s *SemiSlice) Type() string {
+	return "stringSlice"
+}
+
 func (c *CommaSlice) String() string {
 	return fmt.Sprintf("%s", *c)
 }
@@ -49,4 +57,8 @@ func (c *CommaSlice) Set(value string) error {
 		*c = append(*c, v)
 	}
 	return nil
+}
+
+func (c *CommaSlice) Type() string {
+	return "stringSlice"
 }

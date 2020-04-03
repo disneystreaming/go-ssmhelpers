@@ -1,6 +1,8 @@
 package config
 
 import (
+	"time"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/client"
 	"github.com/disneystreaming/go-ssmhelpers/util/httpx"
@@ -16,7 +18,8 @@ func NewDefaultConfig() *aws.Config {
 	return &aws.Config{
 		HTTPClient: httpx.NewDefaultClient(),
 		Retryer: &client.DefaultRetryer{
-			NumMaxRetries: 10,
+			NumMaxRetries:    10,
+			MaxThrottleDelay: 1500 * time.Millisecond,
 		},
 	}
 }
@@ -27,7 +30,8 @@ func NewDefaultConfigWithRegion(region string) *aws.Config {
 		Region:     aws.String(region),
 		HTTPClient: httpx.NewDefaultClient(),
 		Retryer: &client.DefaultRetryer{
-			NumMaxRetries: 10,
+			NumMaxRetries:    10,
+			MaxThrottleDelay: 1500 * time.Millisecond,
 		},
 	}
 }
