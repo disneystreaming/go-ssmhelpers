@@ -19,7 +19,7 @@ func TestGetAllSSMInstances(t *testing.T) {
 		ssmInput := &ssm.DescribeInstanceInformationInput{}
 		instances, _ := GetAllSSMInstances(mockSvc, ssmInput, true)
 
-		// Function should filter out any instances that are offline or not running Linux or do not have the latest agent version
+		// Function should filter out any instances that do not have the latest agent version
 		assert.Lenf(instances, 3, "Incorrect number of matching instances returned; got %d, expected 3", len(instances))
 	})
 
@@ -27,7 +27,7 @@ func TestGetAllSSMInstances(t *testing.T) {
 		ssmInput := &ssm.DescribeInstanceInformationInput{}
 		instances, _ := GetAllSSMInstances(mockSvc, ssmInput, false)
 
-		// Function should filter out any instances that are offline or not running Linux
+		// Function should return all instances, regardless of agent version
 		assert.Lenf(instances, 4, "Incorrect number of matching instances returned; got %d, expected 4", len(instances))
 	})
 

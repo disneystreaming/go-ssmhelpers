@@ -103,20 +103,8 @@ func (m *MockSSMClient) DescribeInstanceInformation(input *ssm.DescribeInstanceI
 			InstanceInformationList: []*ssm.InstanceInformation{
 				{
 					PlatformType:    aws.String("Linux"),
-					PingStatus:      aws.String("Offline"),
-					InstanceId:      aws.String("i-23456"),
-					IsLatestVersion: aws.Bool(true),
-				},
-				{
-					PlatformType:    aws.String("Linux"),
 					PingStatus:      aws.String("Online"),
 					InstanceId:      aws.String("i-45678"),
-					IsLatestVersion: aws.Bool(true),
-				},
-				{
-					PlatformType:    aws.String("Windows"),
-					PingStatus:      aws.String("Offline"),
-					InstanceId:      aws.String("i-78901"),
 					IsLatestVersion: aws.Bool(true),
 				},
 				{
@@ -143,12 +131,6 @@ func (m *MockSSMClient) DescribeInstanceInformation(input *ssm.DescribeInstanceI
 				PlatformType:    aws.String("Linux"),
 				PingStatus:      aws.String("Online"),
 				InstanceId:      aws.String("i-34567"),
-				IsLatestVersion: aws.Bool(true),
-			},
-			{
-				PlatformType:    aws.String("Windows"),
-				PingStatus:      aws.String("Online"),
-				InstanceId:      aws.String("i-67890"),
 				IsLatestVersion: aws.Bool(true),
 			},
 		},
