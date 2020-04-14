@@ -141,11 +141,16 @@ func CheckInstanceReadiness(sp *session.Pool, ssmSession *ssm.SSM, instanceList 
 				continue
 			}
 
-			// If the instance is good, let's get the tags to display during instance selection
-			tags, err := ec2helpers.GetEC2InstanceTags(ec2Sess, *instance.InstanceId)
-			if err != nil {
-				log.Errorf("Could not retrieve tags for instance %s\n%s", *instance.InstanceId, err)
-				continue
+			// If the instance is good, let's get the tags to display during instance selection (unless it's a managed instance)
+			tags := []ec2helpers.InstanceTags{}
+
+			// Check to see if this is a managed instance, which don't have EC2 tags
+			if !(*instance.ResourceType == "ManagedInstance") {
+				tags, err = ec2helpers.GetEC2InstanceTags(ec2Sess, *instance.InstanceId)
+				if err != nil {
+					log.Errorf("Could not retrieve tags for instance %s\n%s", *instance.InstanceId, err)
+					continue
+				}
 			}
 
 			// Append our instance info to the master list
